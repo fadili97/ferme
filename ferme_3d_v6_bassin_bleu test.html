@@ -54,7 +54,7 @@ const annEls=ANNs.map(a=>{
   wrap.style.cssText='position:absolute;pointer-events:none;z-index:8;transform:translate(-50%,-100%)';
   wrap.innerHTML=`<div style="background:rgba(10,15,25,0.78);backdrop-filter:blur(10px);border-left:2px solid ${a.col};border-radius:5px;padding:5px 9px;margin-bottom:4px">
     <div style="color:${a.col};font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap">${a.label}</div>
-    <div style="color:rgba(255,255,255,0.55);font-size:9px;white-space:nowrap;margin-top:1px">${a.sub}</div></div>
+    <div style="color:rgba(255,255,255,0.55);font-size:9px;white-space:nowrap;margin-top:1px">${a.sub}</div>
   <div style="width:1px;height:14px;background:linear-gradient(${a.col},transparent);margin:0 auto"></div>
   <div style="width:6px;height:6px;border-radius:50%;background:${a.col};margin:0 auto;box-shadow:0 0 8px ${a.col}"></div>`;
   ct.appendChild(wrap);
@@ -326,6 +326,9 @@ function tourNav(d){
   if(n>=TOUR.length){tourClose();return;}
   tourStep=n;tourRender();
 }
+window.tourOpen=tourOpen;
+window.tourClose=tourClose;
+window.tourNav=tourNav;
 })();
 </script>
 </div>
