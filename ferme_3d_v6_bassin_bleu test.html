@@ -54,7 +54,7 @@ const annEls=ANNs.map(a=>{
   wrap.style.cssText='position:absolute;pointer-events:none;z-index:8;transform:translate(-50%,-100%)';
   wrap.innerHTML=`<div style="background:rgba(10,15,25,0.78);backdrop-filter:blur(10px);border-left:2px solid ${a.col};border-radius:5px;padding:5px 9px;margin-bottom:4px">
     <div style="color:${a.col};font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap">${a.label}</div>
-    <div style="color:rgba(255,255,255,0.55);font-size:9px;white-space:nowrap;margin-top:1px">${a.sub}</div>
+    <div style="color:rgba(255,255,255,0.55);font-size:9px;white-space:nowrap;margin-top:1px">${a.sub}</div></div>
   <div style="width:1px;height:14px;background:linear-gradient(${a.col},transparent);margin:0 auto"></div>
   <div style="width:6px;height:6px;border-radius:50%;background:${a.col};margin:0 auto;box-shadow:0 0 8px ${a.col}"></div>`;
   ct.appendChild(wrap);
@@ -243,23 +243,7 @@ ct.addEventListener('pointermove',e=>{if(!dr)return;theta-=(e.clientX-px2)*.003;
 ct.addEventListener('pointerup',()=>dr=false);ct.addEventListener('pointerleave',()=>dr=false);
 ct.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(40,Math.min(800,rad+e.deltaY*.3));uC()},{passive:false});
 
-let t=0;
-(function a(){requestAnimationFrame(a);t+=.015;
-water.position.y=2.0+Math.sin(t)*.04;
-wTex.offset.x=Math.sin(t*.3)*.02;wTex.offset.y=Math.cos(t*.2)*.015;wTex.needsUpdate=false;
-ANNs.forEach((a,i)=>{
-  _annV.set(a.wx,a.wy,a.wz).project(C);
-  const sx=(_annV.x*.5+.5)*W,sy=(-.5*_annV.y+.5)*H;
-  const vis=_annV.z<1&&sx>0&&sx<W&&sy>20&&sy<H-20;
-  const pulse=tourActive&&TOUR[tourStep]&&TOUR[tourStep].ann===i;
-  annEls[i].style.opacity=vis?(pulse?'1':tourActive?'0.25':'1'):'0';
-  annEls[i].style.transform=`translate(-50%,-100%) scale(${pulse?1+0.07*Math.sin(t*4):1})`;
-  annEls[i].style.left=sx+'px';annEls[i].style.top=sy+'px';
-});
-R.render(S,C)})();
-window.addEventListener('resize',()=>{const w=ct.clientWidth,h=ct.clientHeight;C.aspect=w/h;C.updateProjectionMatrix();R.setSize(w,h)});
-
-// === GUIDED TOUR ===
+// === GUIDED TOUR DATA ===
 const TOUR=[
   {title:"Vue d'ensemble",icon:"🌾",color:"#c8a860",ann:-1,
    stats:[["Superficie totale","10 Ha"],["Dimensions","420 m × 260 m"],["Culture","Blue Panicum"]],
@@ -288,6 +272,23 @@ const TOUR=[
 ];
 let tourStep=0,tourActive=false;
 
+let t=0;
+(function a(){requestAnimationFrame(a);t+=.015;
+water.position.y=2.0+Math.sin(t)*.04;
+wTex.offset.x=Math.sin(t*.3)*.02;wTex.offset.y=Math.cos(t*.2)*.015;wTex.needsUpdate=false;
+ANNs.forEach((a,i)=>{
+  _annV.set(a.wx,a.wy,a.wz).project(C);
+  const sx=(_annV.x*.5+.5)*W,sy=(-.5*_annV.y+.5)*H;
+  const vis=_annV.z<1&&sx>0&&sx<W&&sy>20&&sy<H-20;
+  const pulse=tourActive&&TOUR[tourStep]&&TOUR[tourStep].ann===i;
+  annEls[i].style.opacity=vis?(pulse?'1':tourActive?'0.25':'1'):'0';
+  annEls[i].style.transform=`translate(-50%,-100%) scale(${pulse?1+0.07*Math.sin(t*4):1})`;
+  annEls[i].style.left=sx+'px';annEls[i].style.top=sy+'px';
+});
+R.render(S,C)})();
+window.addEventListener('resize',()=>{const w=ct.clientWidth,h=ct.clientHeight;C.aspect=w/h;C.updateProjectionMatrix();R.setSize(w,h)});
+
+// === TOUR UI FUNCTIONS ===
 function tourRender(){
   const s=TOUR[tourStep];
   let dots='';
