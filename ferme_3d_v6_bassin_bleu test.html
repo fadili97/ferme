@@ -1,0 +1,245 @@
+
+<div id="v" style="width:100%;height:700px;position:relative;overflow:hidden;border-radius:var(--border-radius-lg)">
+<div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:12px 16px;pointer-events:none;z-index:10">
+<div style="background:rgba(0,0,0,0.65);backdrop-filter:blur(12px);padding:3px 8px;border-radius:5px;color:#fff;pointer-events:auto;display:inline-block;width:fit-content;align-self:flex-start">
+<div style="font-size:14px;font-weight:600;letter-spacing:.5px;margin-bottom:2px">FERME PEDAGOGIQUE ET D'INNOVATION APPLIQUEE</div>
+<div style="font-size:10px;color:#aaa">Maquette 3D</div></div>
+<div style="background:rgba(0,0,0,0.65);backdrop-filter:blur(12px);padding:10px 16px;border-radius:10px;color:#ddd;font-size:10px;line-height:2.1;pointer-events:auto">
+<span style="display:inline-block;width:8px;height:8px;background:#b8a070;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Pistes<br>
+<span style="display:inline-block;width:8px;height:8px;background:#2d7a30;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Brise-vents<br>
+<span style="display:inline-block;width:8px;height:8px;background:#0088ff;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Bassin<br>
+<span style="display:inline-block;width:8px;height:8px;background:#d0a050;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Modules<br>
+<span style="display:inline-block;width:8px;height:8px;background:#1a1a5a;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Solaire<br>
+<span style="display:inline-block;width:8px;height:8px;background:#888;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Cloture + Puits</div></div>
+<div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);padding:6px 16px;border-radius:8px;color:#999;font-size:10px;z-index:10;pointer-events:none">Glisser: orbite | Molette: zoom</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const ct=document.getElementById('v'),W=ct.clientWidth,H=ct.clientHeight;
+const R=new THREE.WebGLRenderer({antialias:true});R.setSize(W,H);R.setPixelRatio(Math.min(devicePixelRatio,2));
+R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
+R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.15;R.outputEncoding=THREE.sRGBEncoding;
+ct.appendChild(R.domElement);
+const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(40,W/H,1,2000);
+
+// === ANNOTATIONS ===
+const ANNs=[
+  {label:'Bassin d\'irrigation',sub:'~1 500 m²',wx:28,wy:5,wz:-37,col:'#44aaff'},
+  {label:'Station tête de réseau',sub:'Filtration & vannes',wx:1,wy:9,wz:-22,col:'#f0c878'},
+  {label:'Magasin / local technique',sub:'Stockage & matériel',wx:5,wy:12,wz:-62,col:'#e8d0a8'},
+  {label:'Panneaux solaires',sub:'15 unités — énergie renouvelable',wx:36,wy:9,wz:-70,col:'#8899ff'},
+  {label:'Puits d\'irrigation',sub:'Forage principal',wx:174,wy:14,wz:-184,col:'#aabbcc'},
+  {label:'Brise-vents',sub:'Haies de protection',wx:-90,wy:9,wz:30,col:'#55bb44'},
+  {label:'Pistes d\'accès',sub:'Réseau interne',wx:-48,wy:3,wz:-20,col:'#c8a860'},
+  {label:'Clôture périphérique',sub:'Sécurisation du périmètre',wx:168,wy:6,wz:-172,col:'#999999'},
+];
+const annEls=ANNs.map(a=>{
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:absolute;pointer-events:none;z-index:8;transform:translate(-50%,-100%)';
+  wrap.innerHTML=`<div style="background:rgba(10,15,25,0.78);backdrop-filter:blur(10px);border-left:2px solid ${a.col};border-radius:5px;padding:5px 9px;margin-bottom:4px">
+    <div style="color:${a.col};font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap">${a.label}</div>
+    <div style="color:rgba(255,255,255,0.55);font-size:9px;white-space:nowrap;margin-top:1px">${a.sub}</div></div>
+  <div style="width:1px;height:14px;background:linear-gradient(${a.col},transparent);margin:0 auto"></div>
+  <div style="width:6px;height:6px;border-radius:50%;background:${a.col};margin:0 auto;box-shadow:0 0 8px ${a.col}"></div>`;
+  ct.appendChild(wrap);
+  return wrap;
+});
+const _annV=new THREE.Vector3();
+
+// Sky
+const sk=document.createElement('canvas');sk.width=4;sk.height=512;
+const skx=sk.getContext('2d'),sg=skx.createLinearGradient(0,0,0,512);
+sg.addColorStop(0,'#0a2a5a');sg.addColorStop(.15,'#2a5a8a');sg.addColorStop(.35,'#5a9ac0');
+sg.addColorStop(.55,'#90c8e8');sg.addColorStop(.75,'#c8dde8');sg.addColorStop(1,'#e8dcc8');
+skx.fillStyle=sg;skx.fillRect(0,0,4,512);
+S.background=new THREE.CanvasTexture(sk);S.fog=new THREE.FogExp2(0xd0c8b8,.0006);
+
+// Lights
+S.add(new THREE.AmbientLight(0xccbb99,.45));
+const sun=new THREE.DirectionalLight(0xfff0cc,1.6);sun.position.set(180,250,120);
+sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
+sun.shadow.camera.left=-320;sun.shadow.camera.right=320;sun.shadow.camera.top=320;sun.shadow.camera.bottom=-320;
+sun.shadow.bias=-.00015;sun.shadow.normalBias=.025;S.add(sun);
+S.add(new THREE.HemisphereLight(0x80b8e0,0x907a50,.35));
+const fl=new THREE.DirectionalLight(0x8899bb,.2);fl.position.set(-100,80,-120);S.add(fl);
+
+const CX=237,CZ=178;
+
+// Textures
+function sT(w,h,r,g,b,v){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle=`rgb(${r},${g},${b})`;x.fillRect(0,0,w,h);for(let i=0;i<w*h*.12;i++){const px=Math.random()*w,py=Math.random()*h,d=((Math.random()-.5)*v)|0;x.fillStyle=`rgb(${Math.max(0,Math.min(255,r+d))},${Math.max(0,Math.min(255,g+d))},${Math.max(0,Math.min(255,b+d))})`;x.fillRect(px,py,1+Math.random()*3,1+Math.random()*3);}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+
+// Water texture (animated ripple canvas)
+function waterTex(){
+  const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');
+  x.fillStyle='#0066cc';x.fillRect(0,0,512,512);
+  for(let i=0;i<3000;i++){const px=Math.random()*512,py=Math.random()*512;
+  x.fillStyle=`rgba(${80+Math.random()*80},${150+Math.random()*80},${220+Math.random()*35},${.3+Math.random()*.4})`;
+  x.fillRect(px,py,3+Math.random()*8,1+Math.random()*2);}
+  for(let i=0;i<500;i++){const px=Math.random()*512,py=Math.random()*512;
+  x.fillStyle=`rgba(255,255,255,${.08+Math.random()*.12})`;
+  x.fillRect(px,py,2+Math.random()*15,1);}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);return t;}
+
+const gT=sT(2048,2048,200,182,145,30);gT.repeat.set(8,8);
+const pT=sT(512,512,185,165,120,22);pT.repeat.set(3,3);
+const wTex=waterTex();
+
+// Ground with subtle dunes
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(900,700,100,100),new THREE.MeshStandardMaterial({map:gT,color:0xc8b896,roughness:.95}));
+gnd.rotation.x=-Math.PI/2;gnd.receiveShadow=true;
+const gp=gnd.geometry.attributes.position;
+for(let i=0;i<gp.count;i++){const x=gp.getX(i),y=gp.getY(i);
+gp.setZ(i,Math.sin(x*.005)*Math.cos(y*.007)*1.8+Math.sin(x*.02+y*.015)*.4);}
+gnd.geometry.computeVertexNormals();S.add(gnd);
+
+const pM=new THREE.MeshStandardMaterial({map:pT,color:0xb0985a,roughness:.9});
+const cM=new THREE.MeshStandardMaterial({color:0x8a8878,roughness:.82,metalness:.05});
+const wM=new THREE.MeshStandardMaterial({color:0xe8d0a8,roughness:.72});
+const rfM=new THREE.MeshStandardMaterial({color:0x4a4a4a,roughness:.35,metalness:.65});
+const tM=new THREE.MeshStandardMaterial({color:0x5a4020,roughness:.95});
+const soM=new THREE.MeshStandardMaterial({color:0x151540,roughness:.12,metalness:.8});
+const sfM=new THREE.MeshStandardMaterial({color:0x707070,roughness:.25,metalness:.85});
+const fnM=new THREE.MeshStandardMaterial({color:0x808080,roughness:.55,metalness:.35});
+const wrM=new THREE.LineBasicMaterial({color:0x999});
+const glM=new THREE.MeshStandardMaterial({color:0x80ccee,roughness:.08,transparent:true,opacity:.45});
+
+function mk(geo,mat,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x-CX,y,z-CZ);m.castShadow=true;m.receiveShadow=true;S.add(m);return m;}
+function exP(pts,h,mat,yB){const s=new THREE.Shape();s.moveTo(pts[0][0]-CX,pts[0][1]-CZ);for(let i=1;i<pts.length;i++)s.lineTo(pts[i][0]-CX,pts[i][1]-CZ);s.closePath();const m=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:false}),mat);m.rotation.x=-Math.PI/2;m.position.y=yB+h;m.castShadow=true;m.receiveShadow=true;S.add(m);return m;}
+
+// === CLOTURE ===
+const B=[[405.3,2.4],[2.5,106.2],[69.6,353.2],[472.5,249.5]];
+for(let i=0;i<4;i++){const a=B[i],b=B[(i+1)%4],dx=b[0]-a[0],dy=b[1]-a[1],len=Math.sqrt(dx*dx+dy*dy),n=Math.floor(len/8);
+for(let j=0;j<=n;j++){const t=j/n,px=a[0]+dx*t,py=a[1]+dy*t;
+const post=mk(new THREE.CylinderGeometry(.12,.16,2.8,5),fnM,px,1.4,py);}
+for(const wh of [.5,1.2,2.1]){const pts=[];for(let t=0;t<=1;t+=.008)pts.push(new THREE.Vector3(a[0]+dx*t-CX,wh,a[1]+dy*t-CZ));S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),wrM));}
+mk(new THREE.CylinderGeometry(.28,.35,3.5,6),fnM,a[0],1.75,a[1]);}
+
+// === PISTES ===
+const GRID=[[238,130,246,165],[52,290,150,265],[155,264,252,239],[257,237,354,212],[356,218,259,243],[254,244,157,269],[152,270,54,295],[37,232,135,207],[140,206,237,181],[242,179,339,154],[236,176,139,200],[134,202,35,227],[20,169,119,144],[124,142,221,117],[322,86,225,111],[220,112,123,137],[118,138,18,164],[359,211,455,186],[457,192,361,216],[344,153,440,128],[438,123,343,148],[328,90,422,66],[421,60,327,85],[327,85,312,26],[307,28,322,86],[220,112,205,54],[210,53,225,111],[123,137,108,79],[103,80,118,138]];
+GRID.forEach(l=>{const dx=l[2]-l[0],dy=l[3]-l[1],len=Math.sqrt(dx*dx+dy*dy);if(len<5)return;
+const ang=Math.atan2(dy,dx),cx=(l[0]+l[2])/2,cy=(l[1]+l[3])/2;
+const m=new THREE.Mesh(new THREE.BoxGeometry(len,.2,len>50?4.5:3),pM);
+m.position.set(cx-CX,.12,cy-CZ);m.rotation.y=-ang;m.receiveShadow=true;S.add(m);});
+
+// === BASSIN — VERY VISIBLE BLUE ===
+const bO=[[237.9,130.4],[282.8,118.9],[291.6,153.2],[246.6,164.7]];
+const bI=[[241,132.5],[280,121.7],[288,151.5],[249,162]];
+
+// Concrete rim as a HOLLOW RING (outer shape with inner hole) so water is visible
+const rimShape=new THREE.Shape();
+rimShape.moveTo(bO[0][0]-CX,bO[0][1]-CZ);
+for(let i=1;i<bO.length;i++)rimShape.lineTo(bO[i][0]-CX,bO[i][1]-CZ);
+rimShape.closePath();
+const rimHole=new THREE.Path();
+rimHole.moveTo(bI[0][0]-CX,bI[0][1]-CZ);
+for(let i=1;i<bI.length;i++)rimHole.lineTo(bI[i][0]-CX,bI[i][1]-CZ);
+rimHole.closePath();
+rimShape.holes.push(rimHole);
+const rimMesh=new THREE.Mesh(new THREE.ExtrudeGeometry(rimShape,{depth:2.5,bevelEnabled:false}),
+  new THREE.MeshStandardMaterial({color:0x989080,roughness:.8,metalness:.05}));
+rimMesh.rotation.x=-Math.PI/2;rimMesh.position.y=2.5;rimMesh.castShadow=true;rimMesh.receiveShadow=true;S.add(rimMesh);
+
+// Dark basin floor
+const floorShape=new THREE.Shape();
+floorShape.moveTo(bI[0][0]-CX,bI[0][1]-CZ);
+for(let i=1;i<bI.length;i++)floorShape.lineTo(bI[i][0]-CX,bI[i][1]-CZ);
+floorShape.closePath();
+const floor=new THREE.Mesh(new THREE.ShapeGeometry(floorShape),new THREE.MeshStandardMaterial({color:0x1a2a3a,roughness:.7}));
+floor.rotation.x=-Math.PI/2;floor.position.y=0.05;S.add(floor);
+
+// === WATER SURFACE — BRIGHT BLUE ===
+const ws=new THREE.Shape();
+ws.moveTo(bI[0][0]-CX,bI[0][1]-CZ);
+for(let i=1;i<bI.length;i++)ws.lineTo(bI[i][0]-CX,bI[i][1]-CZ);
+ws.closePath();
+const water=new THREE.Mesh(new THREE.ShapeGeometry(ws),new THREE.MeshStandardMaterial({
+  map:wTex, color:0x0088ff, roughness:.02, metalness:.1, transparent:true, opacity:.95,
+  emissive:0x0055cc, emissiveIntensity:.5
+}));
+water.rotation.x=-Math.PI/2;water.position.y=2.0;S.add(water);
+
+// Glow plane for extra blue pop
+const glowGeo=new THREE.ShapeGeometry(ws);
+const glow=new THREE.Mesh(glowGeo,new THREE.MeshBasicMaterial({color:0x0077ff,transparent:true,opacity:.55}));
+glow.rotation.x=-Math.PI/2;glow.position.y=1.95;S.add(glow);
+
+// === STATION TETE ===
+exP([[234.4,148.4],[241.7,146.5],[244.5,157.5],[237.2,159.4]],5.5,wM,0);
+exP([[233.6,147.6],[242.5,145.7],[245.3,158.3],[236.4,160.2]],.4,rfM,5.5);
+mk(new THREE.BoxGeometry(2.2,3.2,.15),new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:.8}),(234.4+241.7)/2,1.6,(148.4+146.5)/2);
+for(let i=0;i<2;i++){const t=(i+.3)/2;mk(new THREE.BoxGeometry(1.5,1.5,.12),glM,234.4+(241.7-234.4)*t,3.5,148.4+(146.5-148.4)*t);}
+
+// === MAGASIN ===
+exP([[236.3,127.9],[232.6,116.7],[254.5,110.4],[257.9,121.5]],7.5,wM,0);
+exP([[235.5,128.7],[231.8,116],[255.3,109.6],[258.7,122.3]],.45,rfM,7.5);
+for(let i=0;i<5;i++){const t=(i+.5)/5;mk(new THREE.BoxGeometry(2,2,.12),glM,236.3+(232.6-236.3)*t,4.5,127.9+(116.7-127.9)*t);}
+mk(new THREE.BoxGeometry(3,4,.15),new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:.8}),(236.3+257.9)/2-3,2,(127.9+121.5)/2);
+
+// === SOLAR ===
+const sa=-.25;
+for(let r=0;r<3;r++)for(let c=0;c<5;c++){
+const px=262+c*4.2*Math.cos(sa)-r*3.2*Math.sin(sa);
+const pz=107+c*4.2*Math.sin(sa)+r*3.2*Math.cos(sa);
+const panel=mk(new THREE.BoxGeometry(3.8,.08,2),soM,px,4.8,pz);panel.rotation.x=-.35;
+mk(new THREE.CylinderGeometry(.07,.1,4.2,6),sfM,px,2.1,pz);}
+
+// === BRISE-VENTS (full parcelle) ===
+const ba=75.6*Math.PI/180,pa=ba-Math.PI/2;
+const dxb=Math.cos(ba),dyb=Math.sin(ba),dxp=Math.cos(pa),dyp=Math.sin(pa);
+const lC=[0x266a26,0x2e7a2c,0x358530,0x3d9038,0x2a7528,0x327a2e,0x288028,0x3a8a32];
+const lMs=lC.map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.88}));
+function pip(px,py){let ins=false,j=3;for(let i=0;i<4;i++){const xi=B[i][0],yi=B[i][1],xj=B[j][0],yj=B[j][1];if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins;j=i;}return ins;}
+function inBassin(px,py){const pts=bO;let ins=false,j=pts.length-1;for(let i=0;i<pts.length;i++){const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins;j=i;}return ins;}
+
+for(let oi=-8;oi<=8;oi++){for(const pr of [0,5]){
+const off=oi*33+pr,bx=237+dxp*off,by=130+dyp*off;
+for(let si=-4;si<=4;si++){const so=si*32;
+const sx=bx+dxb*(so-14),sy=by+dyb*(so-14),ex=bx+dxb*(so+14),ey=by+dyb*(so+14);
+const mx=(sx+ex)/2,my=(sy+ey)/2;if(!pip(mx,my))continue;
+const ddx=ex-sx,ddy=ey-sy,len=Math.sqrt(ddx*ddx+ddy*ddy),steps=Math.floor(len/3.8);
+for(let i=0;i<=steps;i++){const t=i/Math.max(steps,1);
+const px=sx+ddx*t+(Math.random()-.5)*1.5,pz=sy+ddy*t+(Math.random()-.5)*1.5;
+if(!pip(px,pz))continue;
+if(inBassin(px,pz))continue;
+const h=2.5+Math.random()*3.5,r=.8+Math.random()*1.2;
+const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.06,.13,h*.4,5),tM);
+trunk.position.set(px-CX,h*.2,pz-CZ);trunk.castShadow=true;S.add(trunk);
+const nc=2+Math.floor(Math.random()*2);
+for(let c=0;c<nc;c++){const cr=r*(.5+Math.random()*.5);
+const crown=new THREE.Mesh(new THREE.SphereGeometry(cr,6,4),lMs[Math.floor(Math.random()*8)]);
+crown.position.set(px-CX+(Math.random()-.5)*r*.7,h*(.42+Math.random()*.35),pz-CZ+(Math.random()-.5)*r*.7);
+crown.scale.y=.55+Math.random()*.35;crown.castShadow=true;S.add(crown);}}}}}
+
+// === PUITS ===
+mk(new THREE.CylinderGeometry(3.5,4,5,14),new THREE.MeshStandardMaterial({color:0x757570,roughness:.7}),411.2,2.5,-6.4);
+mk(new THREE.CylinderGeometry(3,3,.4,14),new THREE.MeshStandardMaterial({color:0x2a6aaa,roughness:.08,transparent:true,opacity:.8}),411.2,4.8,-6.4);
+mk(new THREE.TorusGeometry(3.8,.4,8,18),new THREE.MeshStandardMaterial({color:0x858578,roughness:.7}),411.2,5.1,-6.4).rotation.x=Math.PI/2;
+mk(new THREE.CylinderGeometry(.15,.15,6,4),fnM,408.5,5.5,-6.4);
+mk(new THREE.CylinderGeometry(.15,.15,6,4),fnM,413.9,5.5,-6.4);
+mk(new THREE.BoxGeometry(6.5,.25,.35),fnM,411.2,8.5,-6.4);
+
+// === ORBIT ===
+let dr=false,px2=0,py2=0,theta=Math.PI*.25,phi=Math.PI*.3,rad=380;
+const tgt=new THREE.Vector3(0,8,0);
+function uC(){C.position.set(tgt.x+rad*Math.sin(phi)*Math.cos(theta),tgt.y+rad*Math.cos(phi),tgt.z+rad*Math.sin(phi)*Math.sin(theta));C.lookAt(tgt);}uC();
+ct.addEventListener('pointerdown',e=>{dr=true;px2=e.clientX;py2=e.clientY});
+ct.addEventListener('pointermove',e=>{if(!dr)return;theta-=(e.clientX-px2)*.003;phi=Math.max(.08,Math.min(1.5,phi+(e.clientY-py2)*.003));px2=e.clientX;py2=e.clientY;uC()});
+ct.addEventListener('pointerup',()=>dr=false);ct.addEventListener('pointerleave',()=>dr=false);
+ct.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(40,Math.min(800,rad+e.deltaY*.3));uC()},{passive:false});
+
+let t=0;
+(function a(){requestAnimationFrame(a);t+=.015;
+water.position.y=2.0+Math.sin(t)*.04;
+wTex.offset.x=Math.sin(t*.3)*.02;wTex.offset.y=Math.cos(t*.2)*.015;wTex.needsUpdate=false;
+ANNs.forEach((a,i)=>{
+  _annV.set(a.wx,a.wy,a.wz).project(C);
+  const sx=(_annV.x*.5+.5)*W,sy=(-.5*_annV.y+.5)*H;
+  const vis=_annV.z<1&&sx>0&&sx<W&&sy>20&&sy<H-20;
+  annEls[i].style.opacity=vis?'1':'0';
+  annEls[i].style.left=sx+'px';annEls[i].style.top=sy+'px';
+});
+R.render(S,C)})();
+window.addEventListener('resize',()=>{const w=ct.clientWidth,h=ct.clientHeight;C.aspect=w/h;C.updateProjectionMatrix();R.setSize(w,h)});
+})();
+</script>
+</div>
